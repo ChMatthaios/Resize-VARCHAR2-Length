@@ -10,9 +10,19 @@ BEGIN
                          FROM all_tables
                         WHERE table_name = 'TABLE_NAME')
     LOOP
-        DBMS_OUTPUT.put_line (l_altr_stmnt || schema_rec.owner || ';');
-        DBMS_OUTPUT.put_line (l_exec_stmnt || l_new_size || ');');
+        -- Change the schema you opperate in
+        l_altr_stmnt := l_altr_stmnt || schema_rec.owner || ';';
 
+        EXECUTE IMMEDIATE l_altr_stmnt;
+
+        -- Alter the table in the current schema resizing the column
+        l_exec_stmnt := l_exec_stmnt || l_new_size || ');';
+
+        EXECUTE IMMEDIATE l_exec_stmnt;
+
+        COMMIT;
+
+        -- Check for triggers using your column
         FOR trigr_rec
             IN (SELECT DISTINCT trigger_name
                   FROM all_triggers
@@ -23,14 +33,18 @@ BEGIN
                                                   table_owner) LIKE
                                '%COLUMN_NAME%')
         LOOP
-            DBMS_OUTPUT.put_line (
+            -- And recompile them to be sure everything runs as it ran
+            l_exec_trigr :=
                    l_exec_trigr
                 || schema_rec.owner
                 || '.'
                 || trigr_rec.trigger_name
-                || ' COMPILE;');
+                || ' COMPILE;';
+
+            EXECUTE IMMEDIATE l_exec_trigr;
         END LOOP;
 
+        -- Check for packages using your column
         FOR pkg_rec
             IN (SELECT DISTINCT name, TYPE
                   FROM dba_source
@@ -38,12 +52,15 @@ BEGIN
                        AND UPPER (text) LIKE UPPER ('%COLUMN_NAME%')
                        AND TYPE NOT IN ('TRIGGER'))
         LOOP
-            DBMS_OUTPUT.put_line (
+            -- And recompile them to be sure everything runs as it ran
+            l_exec_pkg :=
                    l_exec_pkg
                 || schema_rec.owner
                 || '.'
                 || pkg_rec.name
-                || ' COMPILE;');
+                || ' COMPILE;';
+
+            EXECUTE IMMEDIATE l_exec_pkg;
         END LOOP;
     END LOOP;
 END;
