@@ -1,3 +1,8 @@
+-- When running a block like this you must be sure of the commands that are 
+-- going to be ran.
+-- So before compiling/running the block, instead of EXECUTE IMMEDIATE, run 
+-- DBMS_OUTPUT.PUT_LINE('');
+
 DECLARE
     l_new_size     NUMBER := 200;
     l_altr_stmnt   VARCHAR2 (200) := 'ALTER SESSION SET CURRENT_SCHEMA = ';
